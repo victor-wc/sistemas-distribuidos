@@ -3,45 +3,65 @@
 import socket
 import select
 import sys
+import threading
 from time import sleep
 
-# define a localizacao do servidor
-HOST = '' # vazio indica que podera receber requisicoes a partir de qq interface de rede da maquina
-PORT = 10006 # porta de acesso
+# cria um lock para ser usado na escrita do arquivo
+lock = threading.Lock()
 
+# Classe do banco de dados
 class BancoDados:
   def __init__(self):
     self.data = {}
     self.inicializaMemoria()
 
+  # Descricao: inicializa o banco de dados com os dados do arquivo memory.txt
   def inicializaMemoria(self):
    with open('memory.txt', 'r') as file:
     for line in file:
       key, value = line.split()
       self.data[key] = value
 
+  # Descricao: grava o banco de dados no arquivo memory.txt
   def gravaMemoria(self):
     with open('memory.txt', 'w') as file:
       for key, value in self.data.items():
-        file.write(key + ' ' + value + '\n')
+        file.write(key + ' ' + value + '\n') 
 
+  # Descricao: retorna o valor da chave passada como parametro
+  # Entrada: chave
+  # Saida: valor da chave junto com mensagem de sucesso ou erro
   def get(self, key):
     if key not in self.data:
       return 'Chave não encontrada - Erro 500'
-    return self.data[key]
+    return 'A chave '+key+' possui o(s) valor(es): '+ self.data[key] + '- Sucess 200'
 
+  # Descricao: adiciona um novo valor a uma chave ou cria uma nova chave
+  # Entrada: chave e valor
+  # Saida: mensagem de sucesso ou erro
   def post(self, key, value):
-    self.data[key] = value
-    if key in self.data:
-      return 'Adicionado novo valor '+value+' na chave já existente '+key+'- Success 200'
-    return 'Adicionado novo valor ' + value + ' na nova chave ' + key + 'Sucess 200'
+    lock.acquire()
+    if key not in self.data:
+      self.data[key] = value
+      msg = 'Adicionado novo valor ' + value + ' na nova chave ' + key + '- Sucess 200'
+    else:
+      self.data[key] = self.data[key] + ',' + value
+      msg = 'Adicionado novo valor '+value+' na chave já existente '+key+'- Success 200'
+    lock.release()
+    return msg
 
+  # Descricao: deleta uma chave
+  # Entrada: chave
+  # Saida: mensagem de sucesso ou erro
   def delete(self, key):
     if key not in self.data:
       return 'Chave não encontrada - Erro 500'
+    lock.acquire()
     del self.data[key]
+    lock.release()
     return 'Chave deletada - Sucess 200'
 
+# Classe da interface do servidor e dos comandos
 class Servidor:
 
   def __init__(self, ip, port, dicionario):
@@ -55,7 +75,7 @@ class Servidor:
     self.iniciaServidor()
 
  
-
+  # Descricao: inicia o servidor
   def iniciaServidor(self):
 
     # cria o socket 
@@ -85,18 +105,20 @@ class Servidor:
     clisock, endr = self.sock.accept()
 
     # registra a nova conexao
+    lock.acquire()
     self.conexoes[clisock] = endr
+    lock.release()
 
     return clisock, endr
   
+  # Descricao: encerra a conexao com o cliente
   def encerraConexaoCliente(self, clisock, endr):
     print(str(endr) + '-> encerrou a conexão.')
 
     # remove o cliente da lista de conexoes ativas
+    lock.acquire()
     del self.conexoes[clisock]
-
-    # remove o socket do cliente das entradas do select
-    self.entradas.remove(clisock)
+    lock.release()
 
     # encerra a conexao com o cliente
     clisock.close()
@@ -118,6 +140,7 @@ class Servidor:
       print("Mensagem enviada pelo Cliente de conexão "+ str(endr) + ": " + data)
       data = data.split(' ')
 
+      # verifica se a requisicao possui chave e valor ou apenas chave
       if len(data) == 3:
         header, chave, valor = data
       else:
@@ -125,21 +148,20 @@ class Servidor:
  
       if header == 'get': # cliente requisita dados
         clisock.send(self.dados.get(chave).encode('utf-8'))
-        break
     
       if header == 'post': # cliente envia dados
         clisock.send(self.dados.post(chave,valor).encode('utf-8'))
-        break
 
 
   
 def main():
- '''Inicializa e implementa o loop principal (infinito) do servidor'''
+ #Inicializa e implementa o loop principal (infinito) do servidor
  dicionario = BancoDados()
 
  print("Inicializando servidor...")
+ # Frufru para simular inicializacao de um servidor
  sleep(2)
- servidor = Servidor('', 10004, dicionario)
+ servidor = Servidor('', 10005, dicionario)
  print("Pronto para receber conexoes...")
 
  while True:
@@ -154,10 +176,8 @@ def main():
     if pronto == servidor.sock:  #pedido novo de conexao
       clisock, endr = servidor.aceitaConexao()
       print ('Conectado com: ', endr)
-      # configura o socket para o modo nao-bloqueante
-      clisock.setblocking(False)
-      # inclui o socket principal na lista de entradas de interesse
-      servidor.entradas.append(clisock)
+      cliente = threading.Thread(target=servidor.atendeRequisicoes, args=(clisock, endr))
+      cliente.start()
     elif pronto == sys.stdin: #entrada padrao
       cmd = input()
       if cmd == 'fim': #solicitacao de finalizacao do servidor
@@ -165,13 +185,11 @@ def main():
           servidor.dados.gravaMemoria()
           servidor.sock.close()
           sys.exit()
-        else: print("ha conexoes ativas")
-      elif cmd == 'delete': #outro exemplo de comando para o servidor
+        else: print("O servidor ainda possui conexoes ativas com clientes")
+      elif cmd == 'delete': #Deletar uma chave ou um valor específico de uma chave
         print('Digite a chave que deseja deletar: ')
         chave = input()
         servidor.dados.delete(chave)
         print('Chave deletada com sucesso!')
-    else: #nova requisicao de cliente
-      servidor.atendeRequisicoes(pronto, servidor.conexoes[pronto])
 
 main()

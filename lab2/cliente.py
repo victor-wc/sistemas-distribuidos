@@ -1,9 +1,7 @@
 #servidor de echo: lado cliente
 import socket
 
-HOST = 'localhost' # maquina onde esta o servidor
-PORT = 10006      # porta que o servidor esta escutando
-
+# Classe da interface do cliente
 class Interface:
 
   def __init__(self, ip, port):
@@ -23,11 +21,11 @@ class Interface:
 
 
   def fazRequisicoes(self):
-    '''Faz requisicoes ao servidor e exibe o resultado.
-    Entrada: socket conectado ao servidor'''
+    #Faz requisicoes ao servidor e exibe o resultado.
+    #Entrada: socket conectado ao servidor
     # le as mensagens do usuario ate ele digitar 'fim'
 
-    msg = input("Digite uma mensagem ('fim' para terminar):")
+    msg = input("Digite uma mensagem ('fim' para sair do programa):")
     if msg == 'fim':
      self.encerraConexao()
     else:
@@ -40,6 +38,7 @@ class Interface:
      # imprime a mensagem recebida
      print(str(msg, encoding='utf-8'))
 
+  # Descricao: encerra a conexao com o servidor
   def encerraConexao(self):
     self.sock.close()
     exit()
@@ -47,9 +46,9 @@ class Interface:
   
 
 def main():
- '''Funcao principal do cliente'''
+ #Funcao principal do cliente
  #inicia o a interface
- cliente = Interface('localhost', 10004)
+ cliente = Interface('localhost', 10005)
 
  print('Bem vindo ao Dicionário Remoto!') 
  print('O formato da mensagem deve ser: HEADER CHAVE VALOR')
