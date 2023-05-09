@@ -186,7 +186,7 @@ def main():
           servidor.sock.close()
           sys.exit()
         else: print("O servidor ainda possui conexoes ativas com clientes")
-      elif cmd == 'delete': #Deletar uma chave ou um valor específico de uma chave
+      elif cmd == 'delete': #Deletar uma chave
         print('Digite a chave que deseja deletar: ')
         chave = input()
         servidor.dados.delete(chave)
