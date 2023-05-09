@@ -174,21 +174,27 @@ def main():
 
   for pronto in leitura:
     if pronto == servidor.sock:  #pedido novo de conexao
+      # Servidor acieta conexão com cliente
       clisock, endr = servidor.aceitaConexao()
       print ('Conectado com: ', endr)
+      # É criado uma thread para cada interação entre um cliente e o servidor
       cliente = threading.Thread(target=servidor.atendeRequisicoes, args=(clisock, endr))
       cliente.start()
     elif pronto == sys.stdin: #entrada padrao
       cmd = input()
       if cmd == 'fim': #solicitacao de finalizacao do servidor
         if not servidor.conexoes: #somente termina quando nao houver clientes ativos
+          # Grava os dados da memória do programa para a persistente
           servidor.dados.gravaMemoria()
+          # Fecha o socket principal
           servidor.sock.close()
+          # Finaliza o programa
           sys.exit()
         else: print("O servidor ainda possui conexoes ativas com clientes")
       elif cmd == 'delete': #Deletar uma chave
         print('Digite a chave que deseja deletar: ')
         chave = input()
+        # Chama método do servidor para interação com o banco
         servidor.dados.delete(chave)
         print('Chave deletada com sucesso!')
 
