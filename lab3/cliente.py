@@ -17,9 +17,6 @@ class Interface:
     #cria socket
     self.conn = rpyc.connect(self.ip, self.port)
 
-    print(type(self.conn.root)) # mostra que conn.root eh um stub de cliente
-    print(self.conn.root.get_service_name()) # exibe o nome da classe (servico) oferecido
-
 
   def fazRequisicoes(self):
     #Faz requisicoes ao servidor e exibe o resultado.
@@ -28,18 +25,19 @@ class Interface:
     # le as mensagens do usuario ate ele digitar 'fim'
     msg = input("Escolha uma opção abaixo: \n (1) Recuperar uma informação do dicionário (GET)\n (2) Inserir uma informação nova no dicionário (POST)\n (3) Encerrar conexão\n")
     if msg == '3':
-     self.encerraConexao()
+      self.encerraConexao()
     elif msg == '1':
-     msg = input("Digite a chave que quer recuperar: ")
-     ret = self.conn.root.exposed_request("get "+ msg)
+      msg = input("Digite a chave que quer recuperar: ")
+      ret = self.conn.root.request("get "+ msg)
+      print(ret)
     elif msg == '2':
-     msg = input("Digite a chave e a palavra que quer inserir na chave: ")
-     ret = self.conn.root.exposed_request("post "+ msg)
+      msg = input("Digite a chave e a palavra que quer inserir na chave: ")
+      ret = self.conn.root.request("post "+ msg)
     else:
-     print("Opção inválida!")
+      print("Opção inválida!")
 
-     # imprime a mensagem recebida
-     print(ret)
+    # imprime a mensagem recebida
+    print(ret)
 
   # Descricao: encerra a conexao com o servidor
   def encerraConexao(self):

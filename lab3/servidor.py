@@ -68,26 +68,28 @@ class BancoDados():
 # Classe da interface do servidor e dos comandos
 class Servidor(rpyc.Service):
 
-  def __init__(self, dicionario):
-    self.dados = dicionario
-    self.conexoes = []
+  def __init__(self):
+    self.dados = BancoDados()
+    self.conexoes = 0
 
  
   # Descricao: aceita o pedido de conexao de um cliente
 	# executa quando uma conexao eh criada
   def on_connect(self, conn):
-    print("Conexao iniciada: ", conn.root)
-    self.conexoes.append(conn)
+    self.conexoes += 1
+    print("Numero de conexoes: ", self.conexoes)
 
 
   # Descricao: encerra a conexao com o cliente
   def on_disconnect(self, conn):
-    print("Conexão finalizada: ", conn.root)
-    self.conexoes.remove(conn)
+    self.conexoes -= 1
+    print("Numero de conexoes: ", self.conexoes)
+
 
   def encerraConexao(self):
-    if len(self.conexoes) != 0:
+    if self.conexoes != 0:
       print("Você ainda possui conexões pendentes")
+      return False
     else:
       print("Encerrando servidor...")
       return True
@@ -98,42 +100,49 @@ class Servidor(rpyc.Service):
 
   def exposed_request(self, msg):
 
-    while True:
+    # divide a requisicao do cliente entre header, chave e valor
+    print(msg)
+    msg = msg.split(' ')
 
-      # divide a requisicao do cliente entre header, chave e valor
+    # verifica se a requisicao possui chave e valor ou apenas chave
+    if len(msg) == 3:
+      header, chave, valor = msg
+    else:
+      header, chave = msg
+
+    if header == 'get': # cliente requisita dados
+      msg = self.dados.get(chave)
       print(msg)
-      msg = msg.split(' ')
-
-      # verifica se a requisicao possui chave e valor ou apenas chave
-      if len(msg) == 3:
-        header, chave, valor = msg
-      else:
-        header, chave = msg
- 
-      if header == 'get': # cliente requisita dados
-        msg = self.dados.get(chave)
-        return msg
-    
-      if header == 'post': # cliente envia dados
-        self.dados.post(chave,valor)
-        return msg
-
-
+      return msg
   
+    if header == 'post': # cliente envia dados
+      self.dados.post(chave,valor)
+      print(msg)
+      return msg
+
+
+def iniciar(servidor):
+  global threadedServer
+  threadedServer = ThreadedServer(servidor, port = 10006)
+  threadedServer.start()
+
 def main():
+ servidor = Servidor()
  #Inicializa e implementa o loop principal (infinito) do servidor
- dicionario = BancoDados()
+
 
  print("Inicializando servidor...")
- servidor = ThreadedServer(Servidor(dicionario), port = 10006)
- print("Pronto para receber conexoes...")
- servidor.start()
 
+ serverThread = threading.Thread(target=iniciar, args=(servidor,))
+ serverThread.start()
+ print("Pronto para receber conexoes...")
+ 
+ print("Digite 'fim' para encerrar o servidor ou 'delete' para deletar uma chave")
  while True:
-    cmd = input("Digite 'fim' para encerrar o servidor ou 'delete' para deletar uma chave")
+    cmd = input()
     if cmd == 'fim': #solicitacao de finalizacao do servidor
-      if servidor.encerraConexao: #somente termina quando nao houver clientes ativos
-        servidor.close()
+      if servidor.encerraConexao(): #somente termina quando nao houver clientes ativos
+        threadedServer.close()
         servidor.dados.gravaMemoria()
         sys.exit()
     elif cmd == 'delete': #Deletar uma chave ou um valor específico de uma chave
