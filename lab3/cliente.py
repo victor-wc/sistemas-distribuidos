@@ -23,18 +23,17 @@ class Interface:
     #Entrada: socket conectado ao servidor
 
     # le as mensagens do usuario ate ele digitar 'fim'
-    msg = input("Escolha uma opção abaixo: \n (1) Recuperar uma informação do dicionário (GET)\n (2) Inserir uma informação nova no dicionário (POST)\n (3) Encerrar conexão\n")
+    msg = input("\n Escolha uma opção abaixo: \n (1) Recuperar uma informação do dicionário (GET)\n (2) Inserir uma informação nova no dicionário (POST)\n (3) Encerrar conexão\n")
     if msg == '3':
       self.encerraConexao()
     elif msg == '1':
-      msg = input("Digite a chave que quer recuperar: ")
+      msg = input("\n Digite a chave que quer recuperar: ")
       ret = self.conn.root.request("get "+ msg)
-      print(ret)
     elif msg == '2':
-      msg = input("Digite a chave e a palavra que quer inserir na chave: ")
+      msg = input("\n Digite a chave e a palavra que quer inserir na chave: ")
       ret = self.conn.root.request("post "+ msg)
     else:
-      print("Opção inválida!")
+      print("\n Opção inválida!")
 
     # imprime a mensagem recebida
     print(ret)

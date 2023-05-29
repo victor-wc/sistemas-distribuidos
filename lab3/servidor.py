@@ -38,7 +38,10 @@ class BancoDados():
   def get(self, key):
     if key not in self.data:
       return 'Chave não encontrada - Erro 500'
-    return 'A chave '+key+' possui o(s) valor(es): '+ self.data[key] + '- Success 200'
+    sortedData = self.data[key].split(',')
+    sortedData.sort()
+    sortedData = ','.join(sortedData)
+    return 'A chave ' + key + ' possui o(s) valor(es): ' + sortedData + ' - Success 200'
 
   # Descricao: adiciona um novo valor a uma chave ou cria uma nova chave
   # Entrada: chave e valor
@@ -47,12 +50,13 @@ class BancoDados():
     lock.acquire()
     if key not in self.data:
       self.data[key] = value
-      msg = 'Adicionado novo valor ' + value + ' na nova chave ' + key + '- Success 200'
+      lock.release()
+      return 'Adicionado novo valor ' + value + ' na nova chave ' + key + ' - Success 200' + '\n'
     else:
       self.data[key] = self.data[key] + ',' + value
-      msg = 'Adicionado novo valor '+value+' na chave já existente '+key+'- Success 200'
-    lock.release()
-    return msg
+      lock.release()
+      return 'Adicionado novo valor '+ value + ' na chave já existente ' + key + ' - Success 200' + '\n'
+    
 
   # Descricao: deleta uma chave
   # Entrada: chave
@@ -101,7 +105,6 @@ class Servidor(rpyc.Service):
   def exposed_request(self, msg):
 
     # divide a requisicao do cliente entre header, chave e valor
-    print(msg)
     msg = msg.split(' ')
 
     # verifica se a requisicao possui chave e valor ou apenas chave
@@ -111,14 +114,10 @@ class Servidor(rpyc.Service):
       header, chave = msg
 
     if header == 'get': # cliente requisita dados
-      msg = self.dados.get(chave)
-      print(msg)
-      return msg
+      return self.dados.get(chave)
   
     if header == 'post': # cliente envia dados
-      self.dados.post(chave,valor)
-      print(msg)
-      return msg
+      return self.dados.post(chave, valor)
 
 
 def iniciar(servidor):
